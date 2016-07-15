@@ -3,6 +3,6 @@
 
 ***********************
 # 使用
-Player player=new Player(this);
-player.setTitle("");
-player.setPath("");
+Player player=new Player(this)；
+player.setTitle("")；
+player.setPath("")
