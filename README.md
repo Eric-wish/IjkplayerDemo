@@ -1,10 +1,10 @@
-# IjkplayerDemo
+##### IjkplayerDemo
 视频播放器，基于ijkplayer的简单封装
 
 ***********************
-### 使用
+##### 使用
 
-# 配置AndroidManifest
+### 配置AndroidManifest
 ```javascript
 <activity
     android:name=".MainActivity"
@@ -13,15 +13,20 @@
     android:label="@string/app_name" >
 ```
 
-# MainActivity
+### 配置MainActivity
 ```javascript
-player = new HuPlayer(this);
-player.setOnHuplayerListener(this);
-player.setOrientationLock(true);
-//player.setCover();
-player.setPath("http://devimages.apple.com/iphone/samples/bipbop/gear1/prog_index.m3u8");
-player.setTitle("测试");
-player.createComplete(); 
+    private HuPlayer player;
+    @Override
+    protected void onCreate(Bundle savedInstanceState)
+    {
+        player = new HuPlayer(this);
+        player.setOnHuplayerListener(this);
+        player.setOrientationLock(true);
+        //player.setCover();
+        player.setPath("http://devimages.apple.com/iphone/samples/bipbop/gear1/prog_index.m3u8");
+        player.setTitle("测试");
+        player.createComplete(); 
+    }
 ```
 ```javascript
     @Override
