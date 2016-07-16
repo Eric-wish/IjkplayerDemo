@@ -18,15 +18,34 @@ import android.support.v7.widget.Toolbar;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.view.WindowManager;
 import android.graphics.Color;
+import android.support.design.widget.AppBarLayout;
+import android.view.MotionEvent;
+import android.view.ViewGroup.LayoutParams;
+import android.view.ViewGroup;
+import android.support.design.widget.CoordinatorLayout;
+import tv.danmaku.ijk.media.widget.IjkVideoView;
+import android.widget.RelativeLayout;
+import tv.danmaku.ijk.example.widget.CustomCoordinatorLayout;
+import android.support.design.widget.FloatingActionButton;
+import android.content.res.ColorStateList;
+import android.widget.ImageView;
 
-public class MainActivity extends AppCompatActivity implements HuPlayer.OnHuplayerListener,View.OnClickListener
+public class MainActivity extends AppCompatActivity implements  HuPlayer.OnHuplayerListener,View.OnClickListener
 {
+
+    private AppBarLayout mAppBar;
+
+    private CoordinatorLayout mCoordinatorLayout;
+
+    private FloatingActionButton fab_play;
+
+    private ImageView cover;
 
     
     @Override
     public void onBufferingUpdate(IMediaPlayer mp, int percent)
     {
-        Toast.makeText(this,""+percent,5000).show();
+        //Toast.makeText(this,""+percent,5000).show();
     }
 
 
@@ -45,11 +64,20 @@ public class MainActivity extends AppCompatActivity implements HuPlayer.OnHuplay
             //HuPlayerActivity.configPlayer(this).setTitle("测试").setScaleType(HuPlayer.SCALETYPE_FITPARENT).setFullScreenOnly(true).play("/sdcard/test.mp4");
             
            // player.start();
+        }else if(v.getId()==R.id.fab_play){
+            cover.setVisibility(View.GONE);
+           // player.setPath("http://devimages.apple.com/iphone/samples/bipbop/gear1/prog_index.m3u8");
+            player.setPath("http://devimages.apple.com.edgekey.net/streaming/examples/bipbop_4x3/gear4/prog_index.m3u8");
+            
+           player.setTitle("测试");
+            player.createComplete();
+            
         }
         
     }
     
 
+    
     @Override
     public void onPlayerCreate()
     {
@@ -61,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements HuPlayer.OnHuplay
     @Override
     public void onPrepared(IMediaPlayer mp)
     {
+        fab_play.setVisibility(View.GONE);
         Toast.makeText(this,"准备完成",1000).show();
     }
 
@@ -114,17 +143,25 @@ public class MainActivity extends AppCompatActivity implements HuPlayer.OnHuplay
         }
     }
 
-   /*void initView(){
+   void initView(){
        Toolbar mToolbar = (Toolbar) findViewById(R.id.toolbar);
        setSupportActionBar(mToolbar);
        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-     //  getSupportActionBar().setTitle("");
-       
     
+      mAppBar=(AppBarLayout) findViewById(R.id.appbar_layout);
+       
+      
+       mCoordinatorLayout= (CustomCoordinatorLayout)findViewById(R.id.coordinator_layout);
+       
+       mCoordinatorLayout.setNestedScrollingEnabled(false);
        CollapsingToolbarLayout mCollapsingToolbarLayout= (CollapsingToolbarLayout)findViewById(R.id.collapsing_toolbar_layout);
        
-       //mCollapsingToolbarLayout.setTitle("");
-   }*/
+       fab_play=(FloatingActionButton)findViewById(R.id.fab_play);
+       fab_play.setOnClickListener(this);
+      
+       cover=(ImageView)findViewById(R.id.img_cover);
+       cover.setBackgroundResource(R.drawable.ic_launcher);
+   }
 
 
     private HuPlayer player;
@@ -141,26 +178,28 @@ public class MainActivity extends AppCompatActivity implements HuPlayer.OnHuplay
         //this.getWindow().setStatusBarColor(Color.BLACK);
         
         super.onCreate(savedInstanceState);
-        //getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
          
            
         
-        setContentView(R.layout.main);
-        //initView();
+        setContentView(R.layout.activity_main);
+        initView();
         player = new HuPlayer(this);
+        player.setActionBar(getSupportActionBar());
+       
+        
         player.setOnHuplayerListener(this);
-		//findViewById(R.id.start).setOnClickListener(this);
+        //player.setCover(R.drawable.test3);
+        
+		
         new Handler().postDelayed(new Runnable(){
 
                 @Override
                 public void run()
                 {
-                    player.setOrientationLock(true);
-                    //player.setCover();
+                   
+                    fab_play.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#30469b")));
                     
-                    player.setPath("http://devimages.apple.com/iphone/samples/bipbop/gear1/prog_index.m3u8");
-                    player.setTitle("测试");
-                    player.createComplete();
                 }
             }, 1000);
 

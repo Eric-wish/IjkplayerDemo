@@ -93,7 +93,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     private final AudioManager audioManager;
     private final int mMaxVolume;
     private boolean playerSupport;//是否支持播放
-    private String url;//视频url
+    
     private BindView v;
     private long pauseTime;//暂停时间
     private boolean isLive = false;//是否为直播
@@ -172,8 +172,12 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     @Override
     public void onPrepared(IMediaPlayer mp)
     {
-        showLoading(false);
-        
+        start();
+       // showLoading(false);
+        showStatusBar(false);
+        showActionBar(false);
+        showControllerView(false);
+        liveBox.setClickable(true);
         if(listener!=null)
             listener.onPrepared(mp);
     }
@@ -203,7 +207,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     {
         
         statusChange(STATUS_ERROR);
-        showThumb(true);
+       // showThumb(true);
         showLoading(false);
         if(listener!=null)
             listener.onError(mp,what,extra);
@@ -238,7 +242,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     public void onCompletion(IMediaPlayer mp)
     {
         statusChange(STATUS_COMPLETED);
-        updateStartPlay();
+        
         if(listener!=null)
             listener.onComplete(mp);
     }
@@ -251,39 +255,10 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
             } else if (p.getId() == R.id.img_huplayer_play) {
                 doPauseResume();
                 show(defaultTimeout);
-            }else if (p.getId() == R.id.img_huplayet_start) {
-                if(status==STATUS_IDLE){
-                    showThumb(false);
-                    showCover(false);
-                    showLoading(true);
-                    showControllerView(false);
-                    videoView.start();
-                }else if(status==STATUS_ERROR){
-                    showThumb(false);
-                    showCover(false);
-                    showLoading(true);
-                    showControllerView(false);
-                    //setPath(url);
-                   
-                    //videoView.seekTo(currentPosition);
-                    videoView.resume();
-                    
-                    videoView.start();
-                }else if(status==STATUS_COMPLETED){
-                    showThumb(false);
-                    showCover(false);
-                    showLoading(true);
-                    showControllerView(false);
-                    videoView.resume();
-                    videoView.start();
-                }else{
-                    //doPauseResume();
-                    // showThumb(false);
-                }
-                
-            } else if (p.getId() == R.id.img_huplayer_back) {
-                if (!fullScreenOnly && !portrait) {
-                    activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            }else if (p.getId() == R.id.img_huplayer_back) {
+                if (!fullScreenOnly && isFullScreen) {
+                    toggleFullScreen();
+                    //activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
                 } else {
                     activity.finish();
                 }
@@ -367,7 +342,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         final GestureDetector gestureDetector = new GestureDetector(activity, new PlayerGestureListener());
 
         //
-        liveBox.setClickable(true);
+        liveBox.setClickable(false);
         liveBox.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View view, MotionEvent motionEvent) {
@@ -442,9 +417,9 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         v.id(R.id.img_huplayer_play).clicked(onClickListener);
         v.id(R.id.img_huplayer_fullscreen).clicked(onClickListener);
         v.id(R.id.img_huplayer_back).clicked(onClickListener);
-        v.id(R.id.img_huplayet_start).clicked(onClickListener);
+      
        
-        showLoading(true);
+       
         
         liveBox = activity.findViewById(R.id.app_video_box);
         
@@ -456,7 +431,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     //继续与暂停互相转换
     private void doPauseResume() {
         if (status==STATUS_COMPLETED) {//播放完成
-            v.id(R.id.img_huplayet_start).gone();
+           
             videoView.seekTo(0);
             videoView.start();
         } else if (videoView.isPlaying()) {//正在播放
@@ -466,13 +441,15 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
             videoView.start();
         }
         updatePausePlay();
-        updateStartPlay();
+        
     }
 
     //****************
     //    播放器
     //****************
-
+    private ActionBar mActionBar;
+    private String url;//视频url
+    private boolean isFullScreen=false;
     /**
      * 设置视频路径
      * @param url
@@ -525,6 +502,14 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     }
     
     /**
+     * 设置ActionBar
+     * @param bar
+     */
+    public void setActionBar(ActionBar bar){
+        this.mActionBar=bar;
+    }
+    
+    /**
      * 实现接口
      */
     public HuPlayer setOnHuplayerListener(OnHuplayerListener listener){
@@ -539,8 +524,8 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     public void createComplete(){
         showControllerView(false);
         showCover(true);
-        showThumb(true);
-        showLoading(false);
+       // showThumb(true);
+        //showLoading(true);
         videoView.setVisibility(View.VISIBLE);
         listener.onPlayerCreate();
     }
@@ -553,7 +538,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         videoView.start();
         status=STATUS_PLAYING;
         updatePausePlay();
-        updateStartPlay();
+       
     }
 
     /**
@@ -563,7 +548,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         videoView.pause();
         status=STATUS_PAUSE;
         updatePausePlay();
-        updateStartPlay();
+      
     }
     
     /**
@@ -575,6 +560,13 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         if (force || isShowing) {
             handler.removeMessages(MESSAGE_SHOW_PROGRESS);
             showControllerView(false);
+            if(!isFullScreen&&isPlaying()){
+                showActionBar(false);
+                showStatusBar(false);
+            }else{
+                
+            }
+            
             isShowing = false;
             if(listener!=null)
                 listener.onChange(false);
@@ -594,7 +586,13 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
      */
     public void show(int timeout) {
         if (!isShowing) {
-            v.id(R.id.ll_huplayer_top_box).visible();
+            if(isFullScreen){
+                showTopBox(true);
+            }else{
+                showActionBar(true);
+                showStatusBar(true);
+            }
+                
             if (!isLive) {
                 showBottomBox(true);
             }
@@ -607,7 +605,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
             //onControlPanelVisibilityChangeListener.change(true);
         }
         updatePausePlay();
-        updateStartPlay();
+        
         handler.sendEmptyMessage(MESSAGE_SHOW_PROGRESS);
         handler.removeMessages(MESSAGE_FADE_OUT);
         if (timeout != 0) {
@@ -648,7 +646,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         if (!isLive && newStatus==STATUS_COMPLETED) {
             handler.removeMessages(MESSAGE_SHOW_PROGRESS);
             hideAll();
-            v.id(R.id.img_huplayet_start).visible();
+          
             
         }else if (newStatus == STATUS_ERROR) {
             handler.removeMessages(MESSAGE_SHOW_PROGRESS);
@@ -659,7 +657,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
                     handler.sendEmptyMessageDelayed(MESSAGE_RESTART_PLAY, defaultRetryTime);
                 }
             } else {
-                updateStartPlay();
+                
                 
                 //showStatus(activity.getResources().getString(R.string.small_problem));
             }
@@ -702,16 +700,19 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
 
     public void onConfigurationChanged(final Configuration newConfig) {
         portrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT;
+        isFullScreen=!portrait;
         doOnConfigurationChanged(portrait);
     }
 
     private void doOnConfigurationChanged(final boolean portrait) {
+
         if (videoView != null && !fullScreenOnly) {
            
             handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        tryFullScreen(!portrait);
+                        
+                        //tryFullScreen(!portrait);
                         if (portrait) {
                             v.id(R.id.app_video_box).height(initHeight, false);
                         } else {
@@ -942,12 +943,16 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
 
     
 
-    //
+    //返回按钮响应
     public boolean onBackPressed() {
-        if (!fullScreenOnly && getScreenOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE||getScreenOrientation()==ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) {
-            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        if(isFullScreen&&!fullScreenOnly){
+            toggleFullScreen();
             return true;
         }
+        /*if (!fullScreenOnly && getScreenOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE||getScreenOrientation()==ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) {
+            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            return true;
+        }*/
         return false;
     }
 
@@ -1005,9 +1010,27 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
                 }
             }
         }
-        setFullScreen(fullScreen);
+        showStatusBar(fullScreen);
     }
 
+    //是否显示状态栏
+    private void showStatusBar(boolean isShow){
+        if (activity != null) {
+            WindowManager.LayoutParams attrs = activity.getWindow().getAttributes();
+            if (!isShow) {
+                attrs.flags |= WindowManager.LayoutParams.FLAG_FULLSCREEN;
+                activity.getWindow().setAttributes(attrs);
+                activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+            } else {
+                attrs.flags &= (~WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                activity.getWindow().setAttributes(attrs);
+                activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+            }
+        }
+        
+    }
+    
+    /*
     //隐藏通知栏
     private void setFullScreen(boolean fullScreen) {
         if (activity != null) {
@@ -1023,12 +1046,12 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
             }
         }
 
-    }
+    }*/
     
     //隐藏所有控制器布局
     private void hideAll() {
         showControllerView(false);//隐藏顶部和底部栏
-        showThumb(false);
+        //showThumb(false);
         
     
       
@@ -1062,6 +1085,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         }
     }
     
+    /*
     //是否显示thumb
     private void showThumb(boolean isShow){
         if(isShow){
@@ -1069,7 +1093,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         }else{
             v.id(R.id.img_huplayet_start).invisible();
         }
-    }
+    }*/
  
     //是否显示加载等待条
     private void showLoading(boolean isShow){
@@ -1085,6 +1109,15 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         v.id(R.id.rl_huplayer_bottom_box).visibility(isShow?View.VISIBLE:View.GONE);
     }
     
+    //是否显示actionbar
+    private void showActionBar(boolean isShow){
+        if(mActionBar!=null){
+            if(!isShow) 
+                mActionBar.hide();
+            else   
+                mActionBar.show();
+        }
+    }
     
     //更新全屏按钮图标
     private void updateFullScreenButton() {
@@ -1095,7 +1128,8 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         }
     }
     
-    private void updatePausePlay() {//更新暂停播放按钮图标
+    //更新暂停播放按钮图标
+    private void updatePausePlay() {
         if (videoView.isPlaying()) {
             v.id(R.id.img_huplayer_play).image(R.drawable.bili_player_play_can_pause);
         } else {
@@ -1103,15 +1137,6 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         }
     }
     
-    private void updateStartPlay(){//更新中间按钮图标
-        if(status==STATUS_PLAYING){
-            v.id(R.id.img_huplayet_start).image(R.drawable.huplayer_click_video_pause_selector);
-        }else if(status==STATUS_ERROR){
-            v.id(R.id.img_huplayet_start).image(R.drawable.huplayer_click_video_error_selector);
-        }else{
-            v.id(R.id.img_huplayet_start).image(R.drawable.huplayer_click_video_play_selector);
-        }
-    }
     
     
     
@@ -1129,6 +1154,17 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
          */
         @Override
         public boolean onDoubleTap(MotionEvent e) {
+            if(!isFullScreen){
+                if(isPlaying()){
+                    showStatusBar(true);
+                    showActionBar(true);
+                    showBottomBox(true);
+                }else{
+                    showStatusBar(false);
+                    showActionBar(false);
+                    showBottomBox(false);
+                }
+            }
             //videoView.toggleAspectRatio();
             if(status==STATUS_PLAYING){
                 pause();
@@ -1269,6 +1305,17 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     }
 
     public void toggleFullScreen(){
+        isFullScreen=!isFullScreen;
+        if(!isFullScreen&&!isPlaying()){
+            showActionBar(true);
+            showStatusBar(true);
+        }else{
+            showActionBar(false);
+            showStatusBar(false);
+        }
+        showControllerView(false);
+        
+        isShowing=false;
         if (getScreenOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         } else {

@@ -1,7 +1,8 @@
-package tv.danmaku.ijk.example.customview;
+package tv.danmaku.ijk.example.widget;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.content.Context;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 
 public class CustomCollapsingToolbarLayout extends CollapsingToolbarLayout 
 {
@@ -11,6 +12,15 @@ public class CustomCollapsingToolbarLayout extends CollapsingToolbarLayout
         setScrollContainer(false);
         
     }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event)
+    {
+        // TODO: Implement this method
+        return false;
+    }
+    
+    
     
     
 }

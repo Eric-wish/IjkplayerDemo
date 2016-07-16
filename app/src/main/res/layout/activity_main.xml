@@ -1,72 +1,124 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.design.widget.CoordinatorLayout
+<tv.danmaku.ijk.example.widget.CustomCoordinatorLayout
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:app="http://schemas.android.com/apk/res-auto"
 	xmlns:tools="http://schemas.android.com/tools"
 	android:layout_width="match_parent"
 	android:layout_height="match_parent"
 	android:fitsSystemWindows="true"
-	tools:context=".MainActivity">
+	tools:context=".MainActivity"
+	android:id="@+id/coordinator_layout">
 
-	<android.support.design.widget.AppBarLayout
-        android:fitsSystemWindows="true"
+	<tv.danmaku.ijk.example.widget.CustomAppBarLayout
+		android:fitsSystemWindows="true"
 		android:layout_width="match_parent"
-		android:layout_height="wrap_content">
+		android:layout_height="wrap_content"
+		android:id="@+id/appbar_layout">
 
-		<tv.danmaku.ijk.example.customview.CustomCollapsingToolbarLayout
-            android:fitsSystemWindows="true"
+		<tv.danmaku.ijk.example.widget.CustomCollapsingToolbarLayout
+			android:fitsSystemWindows="true"
 			android:id="@+id/collapsing_toolbar_layout"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			app:contentScrim="#30469b"
 			app:expandedTitleMarginStart="48dp"
 			app:layout_scrollFlags="scroll|exitUntilCollapsed">
+           
 
-            <include
-                android:fitsSystemWindows="true"
+                <include
+                    android:fitsSystemWindows="true"
+                    app:layout_collapseMode="parallax"
+                    app:layout_collapseParallaxMultiplier="0.7"
+                    layout="@layout/activity_huplayer"
+                    android:layout_width="match_parent"
+                    android:layout_height="210dp"/>
+                
+            <ImageView
                 app:layout_collapseMode="parallax"
+
+                android:fitsSystemWindows="true"
+                android:scaleType="centerCrop"
+
                 app:layout_collapseParallaxMultiplier="0.7"
-                layout="@layout/activity_huplayer"
+
                 android:layout_width="match_parent"
-                android:layout_height="250dp"/>
-            <!--
-			<ImageView
-				android:fitsSystemWindows="true"
-				android:layout_width="match_parent"
-				android:layout_height="match_parent"
-				android:scaleType="centerCrop"
-				android:src="@drawable/test2"
-				app:layout_collapseMode="parallax"
-				app:layout_collapseParallaxMultiplier="0.7"/>
-            -->
-            
-            
+                android:layout_height="210dp"
+                android:id="@+id/img_cover"/>
+			
+
+			
 			<android.support.v7.widget.Toolbar
-                app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
-                android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+				app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+				android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
 				app:layout_collapseMode="pin"
 				app:layout_scrollFlags="exitUntilCollapsed"
 				android:id="@+id/toolbar"
 				android:layout_width="match_parent"
 				android:layout_height="?attr/actionBarSize"/>
 
-			
-		</tv.danmaku.ijk.example.customview.CustomCollapsingToolbarLayout>
-	</android.support.design.widget.AppBarLayout>
+		</tv.danmaku.ijk.example.widget.CustomCollapsingToolbarLayout>
 
-	<LinearLayout
+	</tv.danmaku.ijk.example.widget.CustomAppBarLayout>
+
+	<android.support.design.widget.FloatingActionButton
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_margin="16dp"
+		android:clickable="true"
+		android:src="@drawable/ic_discuss"
+		app:backgroundTint="#BBBBBB"
+		app:layout_anchor="@id/appbar_layout"
+		app:layout_anchorGravity="bottom|right|end"
+		android:id="@+id/fab_play"/>
+
+	<android.support.v4.widget.NestedScrollView
 		android:layout_width="match_parent"
-		android:layout_height="match_parent"
-		android:orientation="vertical"
+		android:layout_height="wrap_content"
 		app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-		<android.support.v7.widget.RecyclerView
-			android:id="@+id/recyclerView"
+		<LinearLayout
+			android:layout_height="wrap_content"
 			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			android:scrollbars="none"/>
+			android:orientation="vertical">
 
-	</LinearLayout>
+			<TextView
+				android:layout_height="100dp"
+				android:layout_width="match_parent"
+				android:text="测试"
+				android:background="#BFB4B3"
+				android:gravity="center"/>
 
-</android.support.design.widget.CoordinatorLayout>
+			<TextView
+				android:layout_height="100dp"
+				android:layout_width="match_parent"
+				android:text="测试"
+				android:background="#BFB4B3"
+				android:gravity="center"/>
+
+			<TextView
+				android:layout_height="100dp"
+				android:layout_width="match_parent"
+				android:text="测试"
+				android:background="#BFB4B3"
+				android:gravity="center"/>
+
+			<TextView
+				android:layout_height="100dp"
+				android:layout_width="match_parent"
+				android:text="测试"
+				android:background="#BFB4B3"
+				android:gravity="center"/>
+
+			<TextView
+				android:layout_height="400dp"
+				android:layout_width="match_parent"
+				android:text="测试"
+				android:background="#BFB4B3"
+				android:gravity="center"/>
+
+		</LinearLayout>
+
+	</android.support.v4.widget.NestedScrollView>
+
+</tv.danmaku.ijk.example.widget.CustomCoordinatorLayout>
 
