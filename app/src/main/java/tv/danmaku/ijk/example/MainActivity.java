@@ -153,7 +153,7 @@ public class MainActivity extends AppCompatActivity implements  HuPlayer.OnHupla
       
        mCoordinatorLayout= (CustomCoordinatorLayout)findViewById(R.id.coordinator_layout);
        
-       mCoordinatorLayout.setNestedScrollingEnabled(false);
+       
        CollapsingToolbarLayout mCollapsingToolbarLayout= (CollapsingToolbarLayout)findViewById(R.id.collapsing_toolbar_layout);
        
        fab_play=(FloatingActionButton)findViewById(R.id.fab_play);
@@ -178,8 +178,12 @@ public class MainActivity extends AppCompatActivity implements  HuPlayer.OnHupla
         //this.getWindow().setStatusBarColor(Color.BLACK);
         
         super.onCreate(savedInstanceState);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-         
+		//>19   4.4
+        if(Build.VERSION.SDK_INT>Build.VERSION_CODES.KITKAT){
+			//getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+			
+		}
+		
            
         
         setContentView(R.layout.activity_main);

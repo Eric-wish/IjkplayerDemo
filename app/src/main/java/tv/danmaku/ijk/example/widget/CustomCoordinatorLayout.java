@@ -33,23 +33,7 @@ public class CustomCoordinatorLayout extends CoordinatorLayout
         return super.dispatchTouchEvent(ev);
     }
 
-    /*
-    @Override
-    public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes)
-    {
-        // TODO: Implement this method
-        //return super.onStartNestedScroll(child, target, nestedScrollAxes);
-        return true;
-    }*/
-
-    @Override
-    public void setNestedScrollingEnabled(boolean enabled)
-    {
-        // TODO: Implement this method
-        super.setNestedScrollingEnabled(false);
-    }
-    
-    
+   
     
     
 }

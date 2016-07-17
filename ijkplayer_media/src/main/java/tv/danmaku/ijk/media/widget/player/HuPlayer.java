@@ -30,6 +30,7 @@ import android.widget.TextView;
 import tv.danmaku.ijk.media.R;
 import tv.danmaku.ijk.media.activity.HuPlayerActivity;
 import android.transition.Visibility;
+import android.os.Build;
 
 
 /**
@@ -118,8 +119,12 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     private boolean instantSeeking;//是否立即跳转
     private boolean isDragging;//是否可拖拽
     
+	private boolean mVersionAllow=false;
+	
     private OnHuplayerListener listener;
     
+	
+	
     private boolean mOrientationLock=false;//方向锁定
     public void setOrientationLock(boolean isLock){
         this.mOrientationLock=isLock;
@@ -174,7 +179,8 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     {
         start();
        // showLoading(false);
-        showStatusBar(false);
+		
+		showStatusBar(false);
         showActionBar(false);
         showControllerView(false);
         liveBox.setClickable(true);
@@ -312,7 +318,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     //     构造器
     //***************
     public HuPlayer(final Activity activity) {
-
+		//加载库文件
         try {
             IjkMediaPlayer.loadLibrariesOnce(null);
             IjkMediaPlayer.native_profileBegin("libijkplayer.so");
@@ -323,6 +329,9 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         this.activity=activity;
         screenWidthPixels = activity.getResources().getDisplayMetrics().widthPixels;
       
+		//获取安卓版本号
+		mVersionAllow=Build.VERSION.SDK_INT>Build.VERSION_CODES.KITKAT;
+		
         //init view
         initControllerView();
 
@@ -423,6 +432,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         
         liveBox = activity.findViewById(R.id.app_video_box);
         
+		showControllerView(false);
     }
     
     
@@ -562,7 +572,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
             showControllerView(false);
             if(!isFullScreen&&isPlaying()){
                 showActionBar(false);
-                showStatusBar(false);
+				showStatusBar(false);
             }else{
                 
             }
@@ -986,6 +996,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         return position;
     }
     
+	
     //隐藏actionbar
     private void tryFullScreen(boolean fullScreen) {
         if(activity instanceof Activity){
@@ -1015,9 +1026,10 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
 
     //是否显示状态栏
     private void showStatusBar(boolean isShow){
+		
         if (activity != null) {
             WindowManager.LayoutParams attrs = activity.getWindow().getAttributes();
-            if (!isShow) {
+            if (!isShow&&(isFullScreen||(!isFullScreen&&mVersionAllow))) {//隐藏
                 attrs.flags |= WindowManager.LayoutParams.FLAG_FULLSCREEN;
                 activity.getWindow().setAttributes(attrs);
                 activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
@@ -1029,6 +1041,8 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         }
         
     }
+	
+	
     
     /*
     //隐藏通知栏
@@ -1155,16 +1169,16 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         @Override
         public boolean onDoubleTap(MotionEvent e) {
             if(!isFullScreen){
-                if(isPlaying()){
-                    showStatusBar(true);
-                    showActionBar(true);
-                    showBottomBox(true);
-                }else{
-                    showStatusBar(false);
-                    showActionBar(false);
-                    showBottomBox(false);
-                }
-            }
+				if(isPlaying()){
+					showStatusBar(true);
+					showActionBar(true);
+					showBottomBox(true);
+				}else{
+					showStatusBar(false);
+					showActionBar(false);
+					showBottomBox(false);
+				}
+			}
             //videoView.toggleAspectRatio();
             if(status==STATUS_PLAYING){
                 pause();
@@ -1306,6 +1320,17 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
 
     public void toggleFullScreen(){
         isFullScreen=!isFullScreen;
+		/*if(!isPlaying()&&!isFullScreen){
+			showActionBar(true);
+			showStatusBar(true);
+		}else if(!isFullScreen&&isPlaying()){
+			showActionBar(false);
+			showStatusBar(!mVersionAllow);
+		}else{
+			showActionBar(false);
+			showStatusBar(false);
+		}*/
+		
         if(!isFullScreen&&!isPlaying()){
             showActionBar(true);
             showStatusBar(true);
@@ -1322,6 +1347,8 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         }
         updateFullScreenButton();
+		
+		
     }
 
    
