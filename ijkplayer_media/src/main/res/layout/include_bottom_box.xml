@@ -6,8 +6,8 @@
 	android:layout_height="wrap_content"
 	android:layout_alignParentBottom="true"
 	android:padding="8dp"
-	android:visibility="visible"
-	android:background="@color/huplayer_navigationbar">
+    android:background="@color/huplayer_navigationbar"
+	android:visibility="visible">
 
 	<ImageView
 		android:id="@+id/img_huplayer_play"

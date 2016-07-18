@@ -182,7 +182,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
 		
 		showStatusBar(false);
         showActionBar(false);
-        showControllerView(false);
+        showBottomBox(false);
         liveBox.setClickable(true);
         if(listener!=null)
             listener.onPrepared(mp);
