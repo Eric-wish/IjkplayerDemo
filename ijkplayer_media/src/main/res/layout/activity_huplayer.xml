@@ -18,7 +18,16 @@
 		android:layout_width="match_parent"
 		android:layout_height="match_parent"
 		android:layout_marginTop="0px">
-
+        
+        <ProgressBar
+            android:id="@+id/pb_huplayer_loading"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"
+            android:indeterminateDrawable="@drawable/huplayer_video_loading"
+            android:visibility="gone"/>
+        
 		<include
 			layout="@layout/include_top_box"
 			android:layout_width="match_parent"
@@ -36,7 +45,7 @@
 			android:layout_height="match_parent"
 			android:background="@android:color/background_dark"
 			android:gravity="center"
-			android:visibility="visible">
+			android:visibility="gone">
 
 			<TextView
 				android:id="@+id/app_video_status_text"
@@ -72,14 +81,7 @@
 
 	</RelativeLayout>
 
-	<ProgressBar
-		android:id="@+id/pb_huplayer_loading"
-		android:layout_width="28dp"
-		android:layout_height="28dp"
-		android:layout_centerHorizontal="true"
-		android:layout_centerVertical="true"
-		android:indeterminateDrawable="@drawable/huplayer_video_loading"
-		android:visibility="gone"/>
+	
 
 </RelativeLayout>
 

@@ -1,36 +1,28 @@
 package tv.danmaku.ijk.media.widget.player;
 import android.app.Activity;
-import tv.danmaku.ijk.media.widget.IjkVideoView;
-import android.widget.SeekBar;
-import android.media.AudioManager;
-import android.view.View;
-import android.content.pm.ActivityInfo;
-import android.view.OrientationEventListener;
-import tv.danmaku.ijk.media.player.IMediaPlayer;
-import android.view.GestureDetector;
-import android.view.MotionEvent;
-import android.util.DisplayMetrics;
 import android.content.Context;
-import android.content.res.Resources;
-import android.util.TypedValue;
-import tv.danmaku.ijk.media.interfaces.IRenderView;
-import android.view.WindowManager;
-import android.util.Log;
-import android.view.Surface;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.app.ActionBar;
+import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
-import tv.danmaku.ijk.media.player.IjkMediaPlayer;
+import android.media.AudioManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.widget.ImageView;
-import android.view.ViewGroup;
-import android.widget.TextView;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
+import android.view.Surface;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.SeekBar;
 import tv.danmaku.ijk.media.R;
-import tv.danmaku.ijk.media.activity.HuPlayerActivity;
-import android.transition.Visibility;
-import android.os.Build;
+import tv.danmaku.ijk.media.interfaces.IRenderView;
+import tv.danmaku.ijk.media.player.IMediaPlayer;
+import tv.danmaku.ijk.media.player.IjkMediaPlayer;
+import tv.danmaku.ijk.media.widget.IjkVideoView;
 
 
 /**
@@ -66,27 +58,30 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
      */
     public static final String SCALETYPE_4_3="4:3";
     /**
-     * handle的5种不同情况
+     * handle
      */
-    private static final int MESSAGE_SHOW_PROGRESS = 1;//显示过程
+    private static final int MESSAGE_SHOW_PROGRESS = 1;//更新progress
     private static final int MESSAGE_FADE_OUT = 2;//超时淡出
     private static final int MESSAGE_SEEK_NEW_POSITION = 3;//跳转
     private static final int MESSAGE_HIDE_CENTER_BOX = 4;//隐藏中间图标
     private static final int MESSAGE_RESTART_PLAY = 5;//重播
+    private static final int MESSAGE_SHOW_CONTROLLER_BOX = 6;
+    private static final int MESSAGE_HIDE_CONTROLLER_BOX = 7;
+    
+    
     /**
      * 播放器的不同状态
      */
-    private int STATUS_ERROR=-1;
-    private int STATUS_IDLE=0;
-    private int STATUS_PREPARED=1;
-    private int STATUS_LOADING=2;
-    private int STATUS_PLAYING=3;
-    private int STATUS_PAUSE=4;
-    private int STATUS_COMPLETED=5;
+    public final static int STATUS_ERROR=-1;
+    public final static int STATUS_IDLE=0;
+    public final static int STATUS_PREPARED=1;
+    public final static int STATUS_PLAYING=2;
+    public final static int STATUS_PAUSE=3;
+    public final static int STATUS_COMPLETED=4;
     /**
      * 播放器当前的状态
      */
-    private int status=STATUS_IDLE;//当前状态
+    private int mCurrentState=STATUS_IDLE;//当前状态
     
     private final Activity activity;
     private IjkVideoView videoView;//
@@ -98,7 +93,6 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     private BindView v;
     private long pauseTime;//暂停时间
     private boolean isLive = false;//是否为直播
-    private OrientationEventListener orientationEventListener;
     final private int initHeight;//竖屏高度
     private int defaultTimeout=5000;//默认超时时间
     private int screenWidthPixels;//屏幕宽度像素
@@ -117,28 +111,18 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     
     private long duration;//视频时长
     private boolean instantSeeking;//是否立即跳转
-    private boolean isDragging;//是否可拖拽
+    private boolean isDragging;//是否正在拖拽
     
 	private boolean mVersionAllow=false;
 	
     private OnHuplayerListener listener;
-    
-	
-	
-    private boolean mOrientationLock=false;//方向锁定
-    public void setOrientationLock(boolean isLock){
-        this.mOrientationLock=isLock;
-    }
-    
-    
-    
     
     @SuppressWarnings("HandlerLeak")
     private Handler handler=new Handler(Looper.getMainLooper()){
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case MESSAGE_FADE_OUT:
+                case MESSAGE_FADE_OUT://超时隐藏
                     hide(false);
                     break;
                 case MESSAGE_HIDE_CENTER_BOX:
@@ -152,7 +136,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
                         newPosition = -1;
                     }
                     break;
-                case MESSAGE_SHOW_PROGRESS:
+                case MESSAGE_SHOW_PROGRESS://更新进度条
                     setProgress();
                     if (!isDragging && isShowing) {
                         msg = obtainMessage(MESSAGE_SHOW_PROGRESS);
@@ -160,10 +144,29 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
                         updatePausePlay();
                     }
                     break;
-                case MESSAGE_RESTART_PLAY:
-                    // play(url);
-                    start();
+                case MESSAGE_RESTART_PLAY://重播
+                    videoView.seekTo(0);
+                    videoView.start();
                     break;
+                case MESSAGE_SHOW_CONTROLLER_BOX://显示控制器布局
+                    if(!isFullScreen){
+                        showStatusBar(true);
+                        showActionBar(true);
+                        showTopBox(false);
+                        showBottomBox(true); 
+                    }else{
+                        showStatusBar(false);
+                        showActionBar(false);
+                        showControllerView(true);
+                    }
+                    isShowing=true;
+                    break;
+                 case MESSAGE_HIDE_CONTROLLER_BOX://隐藏控制器
+                     showStatusBar(false);
+                     showActionBar(false);
+                     showControllerView(false);
+                     isShowing=false;
+                     break;
             }
         }
     };
@@ -172,34 +175,35 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     //************
     // 实现接口函数
     //************
-    
-    
     @Override
     public void onPrepared(IMediaPlayer mp)
     {
-        start();
-       // showLoading(false);
-		
-		showStatusBar(false);
-        showActionBar(false);
-        showBottomBox(false);
-        liveBox.setClickable(true);
+        setCurrentState(STATUS_PREPARED);
+        videoView.start();
         if(listener!=null)
-            listener.onPrepared(mp);
+            listener.onPrepared();
     }
 
+    @Override
+    public void onCompletion(IMediaPlayer mp)
+    {
+        setCurrentState(STATUS_COMPLETED);
+        if(listener!=null)
+            listener.onComplete();
+    }
+    
     @Override
     public void onBufferingUpdate(IMediaPlayer mp, int percent)
     {
         if(listener!=null)
-        listener.onBufferingUpdate(mp,percent);
+            listener.onBufferingUpdate(percent);
     }
 
     @Override
     public void onSeekComplete(IMediaPlayer mp)
     {
         if(listener!=null)
-            listener.onSeekComplete(mp);
+            listener.onSeekComplete();
     }
 
     @Override
@@ -211,12 +215,9 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     @Override
     public boolean onError(IMediaPlayer mp, int what, int extra)
     {
-        
-        statusChange(STATUS_ERROR);
-       // showThumb(true);
-        showLoading(false);
+        setCurrentState(STATUS_ERROR);
         if(listener!=null)
-            listener.onError(mp,what,extra);
+            listener.onError(what,extra);
         return true;
     }
 
@@ -225,17 +226,17 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     {
         switch (what) {
             case IMediaPlayer.MEDIA_INFO_BUFFERING_START://缓存开始
-                statusChange(STATUS_LOADING);
+                showLoading(true);
                 break;
             case IMediaPlayer.MEDIA_INFO_BUFFERING_END://缓冲结束
-                statusChange(STATUS_PLAYING);
+                showLoading(false);
                 break;
             case IMediaPlayer.MEDIA_INFO_NETWORK_BANDWIDTH://
                 //显示 下载速度
                 //Toaster.show("download rate:" + extra);
                 break;
             case IMediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START://开始播放
-                statusChange(STATUS_PLAYING);
+                setCurrentState(STATUS_PLAYING);
                 break;
         }
         if(listener!=null)
@@ -244,27 +245,22 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     }
 
 
-    @Override
-    public void onCompletion(IMediaPlayer mp)
-    {
-        statusChange(STATUS_COMPLETED);
-        
-        if(listener!=null)
-            listener.onComplete(mp);
-    }
+    
     
     private final View.OnClickListener onClickListener=new View.OnClickListener() {
         @Override
         public void onClick(View p) {
+            //全屏
             if (p.getId() == R.id.img_huplayer_fullscreen) {
                 toggleFullScreen();
+            //播放
             } else if (p.getId() == R.id.img_huplayer_play) {
-                doPauseResume();
+                doOnClickPlay();
                 show(defaultTimeout);
+            //返回
             }else if (p.getId() == R.id.img_huplayer_back) {
                 if (!fullScreenOnly && isFullScreen) {
                     toggleFullScreen();
-                    //activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
                 } else {
                     activity.finish();
                 }
@@ -300,7 +296,6 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         @Override
         public void onStopTrackingTouch(SeekBar seekBar) {
             if (!instantSeeking){
-
                 videoView.seekTo((int) ((duration * seekBar.getProgress()*1.0) / 1000));
             }
             show(defaultTimeout);
@@ -324,19 +319,18 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
             IjkMediaPlayer.native_profileBegin("libijkplayer.so");
             playerSupport=true;
         } catch (Throwable e) {
-            Log.e("GiraffePlayer", "loadLibraries error", e);
+            Log.e("Huplayer", "加载库文件失败", e);
         }
         this.activity=activity;
         screenWidthPixels = activity.getResources().getDisplayMetrics().widthPixels;
       
-		//获取安卓版本号
+		//安卓版本是否高于4.4
 		mVersionAllow=Build.VERSION.SDK_INT>Build.VERSION_CODES.KITKAT;
 		
         //init view
         initControllerView();
-
-        //
         
+        //
         videoView.setOnPreparedListener(this);
         videoView.setOnCompletionListener(this);
         videoView.setOnErrorListener(this);
@@ -370,46 +364,18 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
             });
 
 
-        orientationEventListener = new OrientationEventListener(activity) {
-            @Override
-            public void onOrientationChanged(int orientation) {
-                /*if (orientation >= 0 && orientation <= 30 || orientation >= 330 || (orientation >= 150 && orientation <= 210)) {
-                 //竖屏
-                 if (portrait) {
-                 activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
-                 orientationEventListener.disable();
-                 }
-                 } else if ((orientation >= 90 && orientation <= 120) || (orientation >= 240 && orientation <= 300)) {
-                 if (!portrait) {
-                 activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
-                 orientationEventListener.disable();
-                 }
-                 }*/
-
-
-                if(!mOrientationLock){
-                    activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
-                    portrait=getScreenOrientation()==ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
-                    orientationEventListener.disable();
-                }/*else if(portrait&&((orientation >= 60 && orientation < 150)||(orientation>=210&&orientation<300))){
-
-                 activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-                 portrait=getScreenOrientation()==ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
-                 orientationEventListener.disable();
-                 }*/
-
-
-            }
-        };
+        
+       
         if (fullScreenOnly) {
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
             //activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         }
         portrait=getScreenOrientation()==ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
         initHeight=activity.findViewById(R.id.app_video_box).getLayoutParams().height;
-        hideAll();
+       
+       showControllerView(false);
         if (!playerSupport) {
-            showStatus(activity.getResources().getString(R.string.not_support));
+            //showStatus(activity.getResources().getString(R.string.not_support));
         }
        
     }
@@ -427,36 +393,82 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         v.id(R.id.img_huplayer_fullscreen).clicked(onClickListener);
         v.id(R.id.img_huplayer_back).clicked(onClickListener);
       
-       
-       
-        
         liveBox = activity.findViewById(R.id.app_video_box);
         
-		showControllerView(false);
     }
     
     
+    //设置当前状态
+    private void setCurrentState(int newStatus){
+        switch(newStatus){
+            case STATUS_ERROR:
+                handler.removeMessages(MESSAGE_SHOW_PROGRESS);
+                handler.sendEmptyMessage(MESSAGE_HIDE_CONTROLLER_BOX);
+                showLoading(false);
+                //hideAll();
+                if (isLive) {
+                    //showStatus(activity.getResources().getString(R.string.small_problem));
+                    if (defaultRetryTime>0) {
+                        handler.sendEmptyMessageDelayed(MESSAGE_RESTART_PLAY, defaultRetryTime);
+                    }
+                } else {
+                    //showStatus(activity.getResources().getString(R.string.small_problem));
+                }
+                break;
+            case STATUS_PREPARED:
+                handler.sendEmptyMessage(MESSAGE_HIDE_CONTROLLER_BOX);
+                liveBox.setClickable(true);
+                break;
+            case STATUS_PLAYING:
+                updatePausePlay();
+                if(!isFullScreen&&isPlaying()){
+                    handler.sendEmptyMessage(MESSAGE_HIDE_CONTROLLER_BOX);
+                }
+                showCover(false);
+                showLoading(false);
+                break;
+            case STATUS_PAUSE:
+                updatePausePlay();
+                if(!isFullScreen){
+                    handler.sendEmptyMessage(MESSAGE_SHOW_CONTROLLER_BOX);
+                }
+                break;
+            case STATUS_COMPLETED:
+                updatePausePlay();
+                if(!isLive){
+                    handler.removeMessages(MESSAGE_SHOW_PROGRESS);
+                    //hideAll();
+                    handler.sendEmptyMessage(MESSAGE_HIDE_CONTROLLER_BOX);
+                }
+                break;
+        }
+        if(mCurrentState!=newStatus){
+            mCurrentState=newStatus;
+            if(listener!=null)
+                listener.onStateChange(newStatus);
+        }
+    }
     
-
-    //继续与暂停互相转换
-    private void doPauseResume() {
-        if (status==STATUS_COMPLETED) {//播放完成
-           
+    
+    //点击播放按钮
+    private void doOnClickPlay() {
+        if (mCurrentState==STATUS_COMPLETED) {//播放完成
             videoView.seekTo(0);
             videoView.start();
+            setCurrentState(STATUS_PLAYING);
         } else if (videoView.isPlaying()) {//正在播放
-            statusChange(STATUS_PAUSE);
             videoView.pause();
+            setCurrentState(STATUS_PAUSE);
         } else {//暂停
             videoView.start();
+            setCurrentState(STATUS_PLAYING);
         }
-        updatePausePlay();
-        
+        //updatePausePlay();
     }
 
-    //****************
-    //    播放器
-    //****************
+    //********************
+    //    播放器初始化设置
+    //********************
     private ActionBar mActionBar;
     private String url;//视频url
     private boolean isFullScreen=false;
@@ -464,44 +476,46 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
      * 设置视频路径
      * @param url
      */
-    public void setPath(String url) {
+    public HuPlayer setPath(String url) {
         this.url = url;
         if (playerSupport) {
-            //v.id(R.id.app_video_loading).visible();
             videoView.setVideoPath(url);
-            //videoView.start();
         }
+        return this;
     }
     
     /**
      * 设置title
      * @param title
      */
-    public void setTitle(CharSequence title) {
+    public HuPlayer setTitle(CharSequence title) {
         v.id(R.id.tv_huplayer_title).text(title);
+        return this;
     }
     
     /**
      * 设置播放器封面
      * @param coverId
      */
-    public void setCover(int coverId){
+    public HuPlayer setCover(int coverId){
         v.id(R.id.img_huplayer_cover).image(coverId);
+        return this;
     }
 
     /**
      * try to play when error(only for live video)
      * @param defaultRetryTime millisecond,0 will stop retry,default is 5000 millisecond
      */
-    public void setDefaultRetryTime(long defaultRetryTime) {
+    public HuPlayer setDefaultRetryTime(long defaultRetryTime) {
         this.defaultRetryTime = defaultRetryTime;
+        return this;
     }
     
     /**
      * 设置是否只能全屏播放
      * @param fullScreenOnly
      */
-    public void setFullScreenOnly(boolean fullScreenOnly) {
+    public HuPlayer setFullScreenOnly(boolean fullScreenOnly) {
         this.fullScreenOnly = fullScreenOnly;
         tryFullScreen(fullScreenOnly);
         if (fullScreenOnly) {
@@ -509,14 +523,16 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         } else {
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
         }
+        return this;
     }
     
     /**
      * 设置ActionBar
      * @param bar
      */
-    public void setActionBar(ActionBar bar){
+    public HuPlayer setActionBar(ActionBar bar){
         this.mActionBar=bar;
+        return this;
     }
     
     /**
@@ -527,43 +543,102 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         return this;
     }
     
+    /**
+     * set is live (can't seek forward)
+     * @param isLive
+     * @return
+     */
+    public HuPlayer live(boolean isLive) {
+        this.isLive = isLive;
+        return this;
+    }
+
+    public HuPlayer toggleAspectRatio(){
+        if (videoView != null) {
+            videoView.toggleAspectRatio();
+        }
+        return this;
+    }
+    
+    /**
+     * <pre>
+     *     fitParent:可能会剪裁,保持原视频的大小，显示在中心,当原视频的大小超过view的大小超过部分裁剪处理
+     *     fillParent:可能会剪裁,等比例放大视频，直到填满View为止,超过View的部分作裁剪处理
+     *     wrapContent:将视频的内容完整居中显示，如果视频大于view,则按比例缩视频直到完全显示在view中
+     *     fitXY:不剪裁,非等比例拉伸画面填满整个View
+     *     16:9:不剪裁,非等比例拉伸画面到16:9,并完全显示在View中
+     *     4:3:不剪裁,非等比例拉伸画面到4:3,并完全显示在View中
+     * </pre>
+     * @param scaleType
+     */
+    public HuPlayer setScaleType(String scaleType) {
+        if (SCALETYPE_FITPARENT.equals(scaleType)) {
+            videoView.setAspectRatio(IRenderView.AR_ASPECT_FIT_PARENT);
+        }else if (SCALETYPE_FILLPARENT.equals(scaleType)) {
+            videoView.setAspectRatio(IRenderView.AR_ASPECT_FILL_PARENT);
+        }else if (SCALETYPE_WRAPCONTENT.equals(scaleType)) {
+            videoView.setAspectRatio(IRenderView.AR_ASPECT_WRAP_CONTENT);
+        }else if (SCALETYPE_FITXY.equals(scaleType)) {
+            videoView.setAspectRatio(IRenderView.AR_MATCH_PARENT);
+        }else if (SCALETYPE_16_9.equals(scaleType)) {
+            videoView.setAspectRatio(IRenderView.AR_16_9_FIT_PARENT);
+        }else if (SCALETYPE_4_3.equals(scaleType)) {
+            videoView.setAspectRatio(IRenderView.AR_4_3_FIT_PARENT);
+        }
+        return this;
+    }
+
+    /**
+     * 是否显示左上导航图标(一般有actionbar or appToolbar时需要隐藏)
+     * @param show
+     */
+    public HuPlayer setShowNavIcon(boolean show) {
+        v.id(R.id.img_huplayer_back).visibility(show ? View.VISIBLE : View.GONE);
+        return this;
+    }
     
     /**
      * 播放器创建完成,此时显示播放按钮
      */
-    public void createComplete(){
+    public HuPlayer createComplete(){
         showControllerView(false);
         showCover(true);
        // showThumb(true);
         //showLoading(true);
         videoView.setVisibility(View.VISIBLE);
         listener.onPlayerCreate();
+        return this;
     }
     
+    
+    //----------------
+    //   
+    //----------------
     
     /**
      * 开始播放
      */
     public void start() {
-        videoView.start();
-        status=STATUS_PLAYING;
-        updatePausePlay();
-       
+        if(videoView!=null){
+            videoView.start();
+            setCurrentState(STATUS_PLAYING);
+        }
+        
     }
 
     /**
      * 暂停播放
      */
     public void pause() {
-        videoView.pause();
-        status=STATUS_PAUSE;
-        updatePausePlay();
-      
+        if(videoView!=null&&videoView.canPause()){
+            videoView.pause();
+            setCurrentState(STATUS_PAUSE);
+        }
     }
     
     /**
      * 隐藏
-     * @param force
+     * @param force 是否被动
      *        isShowing
      */
     public void hide(boolean force) {
@@ -579,7 +654,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
             
             isShowing = false;
             if(listener!=null)
-                listener.onChange(false);
+                listener.onControllerChange(false);
         }
     }
     
@@ -611,8 +686,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
             }
             isShowing = true;
             if(listener!=null)
-                listener.onChange(true);
-            //onControlPanelVisibilityChangeListener.change(true);
+                listener.onControllerChange(true);
         }
         updatePausePlay();
         
@@ -623,70 +697,28 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         }
     }
 
-    
 
-
-
-    
-    
-    
-    
-    
-
+    //---------
+    //   状态
+    //---------
   
-
-    
-    /**
-     * 手势结束
-     */
-    private void endGesture() {
-        volume = -1;
-        brightness = -1f;
-        if (newPosition >= 0) {
-            handler.removeMessages(MESSAGE_SEEK_NEW_POSITION);
-            handler.sendEmptyMessage(MESSAGE_SEEK_NEW_POSITION);
+    //返回按钮响应
+    public boolean onBackPressed() {
+        if(isFullScreen&&!fullScreenOnly){
+            toggleFullScreen();
+            return true;
         }
-        handler.removeMessages(MESSAGE_HIDE_CENTER_BOX);
-        handler.sendEmptyMessageDelayed(MESSAGE_HIDE_CENTER_BOX, 500);
-
+        /*if (!fullScreenOnly && getScreenOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE||getScreenOrientation()==ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) {
+         activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+         return true;
+         }*/
+        return false;
     }
-
-    private void statusChange(int newStatus) {
-        status=newStatus;
-        if (!isLive && newStatus==STATUS_COMPLETED) {
-            handler.removeMessages(MESSAGE_SHOW_PROGRESS);
-            hideAll();
-          
-            
-        }else if (newStatus == STATUS_ERROR) {
-            handler.removeMessages(MESSAGE_SHOW_PROGRESS);
-            hideAll();
-            if (isLive) {
-                showStatus(activity.getResources().getString(R.string.small_problem));
-                if (defaultRetryTime>0) {
-                    handler.sendEmptyMessageDelayed(MESSAGE_RESTART_PLAY, defaultRetryTime);
-                }
-            } else {
-                
-                
-                //showStatus(activity.getResources().getString(R.string.small_problem));
-            }
-        } else if(newStatus==STATUS_LOADING){
-            showCover(false);
-            showLoading(true);
-        } else if (newStatus == STATUS_PLAYING) {
-            showCover(false);
-            showLoading(false);
-        }
-
-    }
-
     
-
     public void onPause() {
         pauseTime=System.currentTimeMillis();
         show(0);//把系统状态栏显示出来
-        if (status==STATUS_PLAYING) {
+        if (mCurrentState==STATUS_PLAYING) {
             videoView.pause();
             if (!isLive) {
                 currentPosition = videoView.getCurrentPosition();
@@ -696,7 +728,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
 
     public void onResume() {
         pauseTime=0;
-        if (status==STATUS_PLAYING) {
+        if (mCurrentState==STATUS_PLAYING) {
             if (isLive) {
                 videoView.seekTo(0);
             } else {
@@ -708,20 +740,20 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         }
     }
 
+    public void onDestroy() {
+        handler.removeCallbacksAndMessages(null);
+        videoView.stopPlayback();
+    }
+    
     public void onConfigurationChanged(final Configuration newConfig) {
         portrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT;
         isFullScreen=!portrait;
-        doOnConfigurationChanged(portrait);
-    }
-
-    private void doOnConfigurationChanged(final boolean portrait) {
-
         if (videoView != null && !fullScreenOnly) {
-           
+
             handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        
+
                         //tryFullScreen(!portrait);
                         if (portrait) {
                             v.id(R.id.app_video_box).height(initHeight, false);
@@ -731,26 +763,19 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
                             v.id(R.id.app_video_box).height(Math.min(heightPixels,widthPixels), false);
                         }
                         updateFullScreenButton();
-                        
+
                     }
                 });
-            //orientationEventListener.enable();
+           
         }
     }
 
     
 
-    public void onDestroy() {
-        orientationEventListener.disable();
-        handler.removeCallbacksAndMessages(null);
-        videoView.stopPlayback();
-    }
+    
 
+    
 
-    private void showStatus(String statusText) {
-        v.id(R.id.app_video_status).visible();
-        v.id(R.id.app_video_status_text).text(statusText);
-    }
 
     
 
@@ -821,6 +846,22 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         return orientation;
     }
 
+    
+    /**
+     * 手势结束
+     */
+    private void endGesture() {
+        volume = -1;
+        brightness = -1f;
+        if (newPosition >= 0) {
+            handler.removeMessages(MESSAGE_SEEK_NEW_POSITION);
+            handler.sendEmptyMessage(MESSAGE_SEEK_NEW_POSITION);
+        }
+        handler.removeMessages(MESSAGE_HIDE_CENTER_BOX);
+        handler.sendEmptyMessageDelayed(MESSAGE_HIDE_CENTER_BOX, 500);
+
+    }
+    
     /**
      * 滑动改变声音大小
      *
@@ -908,71 +949,10 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         activity.getWindow().setAttributes(lpa);
 
     }
-
-   
-
-    
-    
-
-    
-
-    /**
-     * <pre>
-     *     fitParent:可能会剪裁,保持原视频的大小，显示在中心,当原视频的大小超过view的大小超过部分裁剪处理
-     *     fillParent:可能会剪裁,等比例放大视频，直到填满View为止,超过View的部分作裁剪处理
-     *     wrapContent:将视频的内容完整居中显示，如果视频大于view,则按比例缩视频直到完全显示在view中
-     *     fitXY:不剪裁,非等比例拉伸画面填满整个View
-     *     16:9:不剪裁,非等比例拉伸画面到16:9,并完全显示在View中
-     *     4:3:不剪裁,非等比例拉伸画面到4:3,并完全显示在View中
-     * </pre>
-     * @param scaleType
-     */
-    public void setScaleType(String scaleType) {
-        if (SCALETYPE_FITPARENT.equals(scaleType)) {
-            videoView.setAspectRatio(IRenderView.AR_ASPECT_FIT_PARENT);
-        }else if (SCALETYPE_FILLPARENT.equals(scaleType)) {
-            videoView.setAspectRatio(IRenderView.AR_ASPECT_FILL_PARENT);
-        }else if (SCALETYPE_WRAPCONTENT.equals(scaleType)) {
-            videoView.setAspectRatio(IRenderView.AR_ASPECT_WRAP_CONTENT);
-        }else if (SCALETYPE_FITXY.equals(scaleType)) {
-            videoView.setAspectRatio(IRenderView.AR_MATCH_PARENT);
-        }else if (SCALETYPE_16_9.equals(scaleType)) {
-            videoView.setAspectRatio(IRenderView.AR_16_9_FIT_PARENT);
-        }else if (SCALETYPE_4_3.equals(scaleType)) {
-            videoView.setAspectRatio(IRenderView.AR_4_3_FIT_PARENT);
-        }
-    }
-
-    /**
-     * 是否显示左上导航图标(一般有actionbar or appToolbar时需要隐藏)
-     * @param show
-     */
-    public void setShowNavIcon(boolean show) {
-        v.id(R.id.img_huplayer_back).visibility(show ? View.VISIBLE : View.GONE);
-    }
-
-    
-
-    //返回按钮响应
-    public boolean onBackPressed() {
-        if(isFullScreen&&!fullScreenOnly){
-            toggleFullScreen();
-            return true;
-        }
-        /*if (!fullScreenOnly && getScreenOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE||getScreenOrientation()==ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) {
-            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-            return true;
-        }*/
-        return false;
-    }
-
-
     
     //********************//
     //      控制器 UI
     //********************//
- 
-    
     //更新进度条
     private long setProgress() {
         if (isDragging){
@@ -986,7 +966,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
                 long pos = 1000L * position / duration;
                 seekBar.setProgress((int) pos);
             }
-            int percent = videoView.getBufferPercentage();
+            int percent = videoView.getBufferPercentage();//缓冲进度
             seekBar.setSecondaryProgress(percent * 10);
         }
 
@@ -1042,43 +1022,6 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         
     }
 	
-	
-    
-    /*
-    //隐藏通知栏
-    private void setFullScreen(boolean fullScreen) {
-        if (activity != null) {
-            WindowManager.LayoutParams attrs = activity.getWindow().getAttributes();
-            if (fullScreen) {
-                attrs.flags |= WindowManager.LayoutParams.FLAG_FULLSCREEN;
-                activity.getWindow().setAttributes(attrs);
-                activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-            } else {
-                attrs.flags &= (~WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                activity.getWindow().setAttributes(attrs);
-                activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-            }
-        }
-
-    }*/
-    
-    //隐藏所有控制器布局
-    private void hideAll() {
-        showControllerView(false);//隐藏顶部和底部栏
-        //showThumb(false);
-        
-    
-      
-        //v.id(R.id.app_video_loading).gone();
-       
-        v.id(R.id.app_video_status).gone();
-       // showBottomControl(false);
-        if(listener!=null)
-            listener.onChange(false);
-       
-    }
-    
-   
     //设置控制器布局是否隐藏(顶部栏和底部栏)
     private void showControllerView(boolean isShow){
         if(isShow){
@@ -1099,16 +1042,6 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         }
     }
     
-    /*
-    //是否显示thumb
-    private void showThumb(boolean isShow){
-        if(isShow){
-            v.id(R.id.img_huplayet_start).visible();
-        }else{
-            v.id(R.id.img_huplayet_start).invisible();
-        }
-    }*/
- 
     //是否显示加载等待条
     private void showLoading(boolean isShow){
         v.id(R.id.pb_huplayer_loading).visibility(isShow?View.VISIBLE:View.GONE);
@@ -1149,6 +1082,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         } else {
             v.id(R.id.img_huplayer_play).image(R.drawable.bili_player_play_can_play);
         }
+        
     }
     
     
@@ -1168,23 +1102,31 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
          */
         @Override
         public boolean onDoubleTap(MotionEvent e) {
-            if(!isFullScreen){
-				if(isPlaying()){
-					showStatusBar(true);
-					showActionBar(true);
-					showBottomBox(true);
-				}else{
-					showStatusBar(false);
-					showActionBar(false);
-					showBottomBox(false);
-				}
-			}
-            //videoView.toggleAspectRatio();
-            if(status==STATUS_PLAYING){
-                pause();
-            }else if(status==STATUS_PAUSE){
-                start();
+      
+            if(isPlaying()){
+                v.id(R.id.img_huplayer_play).image(R.drawable.bili_player_play_can_pause);
+                videoView.pause();
+                setCurrentState(STATUS_PAUSE);
+            }else{
+                v.id(R.id.img_huplayer_play).image(R.drawable.bili_player_play_can_play);
+                videoView.start();
+                setCurrentState(STATUS_PLAYING);
             }
+            
+            /*
+            if(!isFullScreen){
+                if(isPlaying){
+                    showStatusBar(true);
+                    showActionBar(true);
+                    showBottomBox(true);
+                }else{
+                    showStatusBar(false);
+                    showActionBar(false);
+                    showBottomBox(false);
+                }
+			}*/
+            //videoView.toggleAspectRatio();
+            
             return true;
         }
 
@@ -1227,7 +1169,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
             return super.onScroll(e1, e2, distanceX, distanceY);
         }
 
-        //单击确定
+        //单击
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e)
         {
@@ -1240,16 +1182,6 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
         }
 
         
-        
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            if (isShowing) {
-               // hide(false);
-            } else {
-               // show(defaultTimeout);
-            }
-            return true;
-        }
     }
 
     /**
@@ -1320,35 +1252,21 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
 
     public void toggleFullScreen(){
         isFullScreen=!isFullScreen;
-		/*if(!isPlaying()&&!isFullScreen){
-			showActionBar(true);
-			showStatusBar(true);
-		}else if(!isFullScreen&&isPlaying()){
-			showActionBar(false);
-			showStatusBar(!mVersionAllow);
-		}else{
-			showActionBar(false);
-			showStatusBar(false);
-		}*/
-		
         if(!isFullScreen&&!isPlaying()){
-            showActionBar(true);
-            showStatusBar(true);
+            handler.sendEmptyMessage(MESSAGE_SHOW_CONTROLLER_BOX);
         }else{
-            showActionBar(false);
-            showStatusBar(false);
+            handler.sendEmptyMessage(MESSAGE_HIDE_CONTROLLER_BOX);
         }
-        showControllerView(false);
         
-        isShowing=false;
         if (getScreenOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         } else {
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         }
         updateFullScreenButton();
-		
-		
+        updatePausePlay();
+        if(listener!=null)
+            listener.onScreenChange(isFullScreen);
     }
 
    
@@ -1356,22 +1274,7 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
 
     
 
-    /**
-     * set is live (can't seek forward)
-     * @param isLive
-     * @return
-     */
-    public HuPlayer live(boolean isLive) {
-        this.isLive = isLive;
-        return this;
-    }
-
-    public HuPlayer toggleAspectRatio(){
-        if (videoView != null) {
-            videoView.toggleAspectRatio();
-        }
-        return this;
-    }
+    
 
    
     
@@ -1383,21 +1286,25 @@ IMediaPlayer.OnBufferingUpdateListener,IMediaPlayer.OnErrorListener,IMediaPlayer
     //************//
     public interface OnHuplayerListener{
         
+        void onStateChange(int status);
+        
+        void onScreenChange(boolean isFullScreen);
+        
+        void onControllerChange(boolean isShowing);
+        
         void onPlayerCreate();
         
-        void onPrepared(IMediaPlayer mp);
+        void onPrepared();
         
-        void onError(IMediaPlayer mp,int what, int extra) ;
+        void onError(int what, int extra) ;
         
         void onInfo(int what, int extra);
         
-        void onChange(boolean isShowing);
+        void onComplete();
         
-        void onComplete(IMediaPlayer mp);
+        void onSeekComplete();
         
-        void onSeekComplete(IMediaPlayer mp);
-        
-        void onBufferingUpdate(IMediaPlayer mp, int percent)
+        void onBufferingUpdate(int percent);
     }
    
     
